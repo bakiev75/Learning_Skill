@@ -3,5 +3,4 @@
 Токен хранится в виде в виде КОНСТАНТЫ.
 """
 
-
 MY_TOKEN = "5404764351:AAFMlTLshhMVNwA3zn7tDE41YquQabEpd-E"

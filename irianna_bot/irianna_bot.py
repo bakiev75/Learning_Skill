@@ -1,29 +1,6 @@
 import telebot
-import requests
-import json
 import config
-
-data_html = requests.get('https://www.cbr-xml-daily.ru/daily_json.js')
-
-data = json.loads(data_html.content)
-
-print(data)
-
-usd = data['Valute']['USD']['Value'] / data['Valute']['USD']['Nominal']
-usd_name = data['Valute']['USD']['CharCode']
-
-eur = data['Valute']['EUR']['Value'] / data['Valute']['EUR']['Nominal']
-eur_name = data['Valute']['EUR']['CharCode']
-
-jpy = data['Valute']['JPY']['Value'] / data['Valute']['JPY']['Nominal']
-jpy_name = data['Valute']['JPY']['CharCode']
-
-rub = 1
-
-values_dir = {'доллар':usd, 'евро':eur, 'йена':jpy, 'рубль':1}
-values_name = {'доллар':usd_name, 'евро':eur_name, 'йена':jpy_name, 'рубль':'RUB'}
-
-print(values_dir)
+import extensions
 
 TOKEN = config.MY_TOKEN
 
@@ -43,25 +20,35 @@ def handle_start(message):
                           "которую Вам требуется приобрести. ")
 
 @bot.message_handler(commands=['values'])
-def handle_start(message):
+def handle_val(message):
     bot.reply_to(message, "доллар \nевро \nйена \nрубль")
 
 @bot.message_handler(content_types=['text'])
 def function_name(message):
     list_ = message.text.split()
-    print((list_))
-    a = float(values_dir.get(list_[0]))
-    print(a)
+    try:
+        if len(list_) != 3:
+            raise extensions.API_Exceptions_Number
 
-    b = float(values_dir.get(list_[1]))
-    print(b)
+        if list_[0] not in ['доллар', 'евро', 'рубль', 'йена'] or list_[1] not in ['доллар', 'евро', 'рубль', 'йена']:
+            raise extensions.API_Exceptions_Val
 
-    c = float(list_[2])
-    print(c)
-    d = (a / b) * c
+        if not int(list_[2]):
+            raise extensions.API_Exceptions_Digit
 
-    bot.reply_to(message, round(d, 4))
-    bot.send_message(message.chat.id, f"Для покупки {list_[2]} {values_name.get(list_[0])} "
-                                      f"Вам необходимо {round(d, 4)} {values_name.get(list_[1])}")
+    except extensions.API_Exceptions_Number:
+        bot.reply_to(message, "Вы ввели не три параметра! "
+                              "\nПовторите ввод по правилу: \nВалюта№1  Валюта№2  СуммаВалюта№1")
+    except extensions.API_Exceptions_Val:
+        bot.reply_to(message, "Вы ввели неправильное наименование валюты! "
+                              "\nПовторите ввод по правилу: \nВалюта№1  Валюта№2  СуммаВалюта№1")
+    except extensions.API_Exceptions_Digit:
+        bot.reply_to(message, "Вы ввели неверное число! "
+                              "\nПовторите ввод по правилу: \nВалюта№1 Валюта№2 СуммаВалюта№1.")
+    else:
+        base = list_[0]
+        quote = list_[1]
+        quantity = list_[2]
+        bot.reply_to(message, extensions.Get_price.get_price(base, quote, quantity))
 
 bot.polling(none_stop=True)
